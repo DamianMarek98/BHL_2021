@@ -53,20 +53,23 @@ class Simulator:
 
         # Heating.
         if self.is_heating:
-            self.heat_power = max_power_combined_heaters - \
-                self.water_heat_power + free_heating_power
-            power += self.heat_power - free_heating_power
+            heat_needed = get_power_temp_parameter(
+                self.temperature_outside, "heat")
+            if heat_needed == None:
+                self.heat_power = free_heating_power
+            else:
+                addidtional_heat_power = min(max_power_combined_heaters -
+                                             self.water_heat_power, heat_needed)
+                self.heat_power = addidtional_heat_power + free_heating_power
+                power += self.heat_power
         # Holding
         elif self.is_holding:
             hold_needed = get_power_temp_parameter(
                 self.temperature_outside, "hold") - free_heating_power
-            if hold_needed == None:
-                self.heat_power = free_heating_power
-            else:
-                additional_heating_power = min(
-                    max_power_combined_heaters - self.is_heating_water, hold_needed)
-                self.heat_power = additional_heating_power + free_heating_power
-                power += additional_heating_power
+            additional_heating_power = min(
+                max_power_combined_heaters - self.is_heating_water, hold_needed)
+            self.heat_power = additional_heating_power + free_heating_power
+            power += additional_heating_power
         else:
             self.heat_power = 0
 
@@ -109,8 +112,6 @@ class Simulator:
             self.is_heating = False
             self.is_holding = False
 
-        # TODO: Update water heating operations.
-
     def simulate_next_hour(self, temperature, cloud_percentage, datetime):
 
         if datetime.hour == 0:
@@ -128,10 +129,6 @@ class Simulator:
 
         power_from_net = 0
         power_to_net = 0
-
-        print(self.is_heating)
-        print(self.is_holding)
-        print(self.heat_power)
 
         if power_unit_cost < 1:
             if power_difference > 0:
@@ -166,11 +163,8 @@ class Simulator:
         balance = power_to_net * power_unit_income - power_from_net * power_unit_cost
         self.cash_balance += balance
 
-        self._update_next_temperature_by_simulation()
+        self.update_next_temperature_by_simulation()
 
-        # print(f"Power unit cost: {power_unit_cost}")
-        # print(f"Power unit income: {power_unit_income}")
-        # print(f"Hour: {self.datetime.hour}")
         print(f"Power from net: {power_from_net}")
         print(f"Power to net: {power_to_net}")
         print(f"Accumulator state: {self.accumulator_state}")
@@ -179,51 +173,53 @@ class Simulator:
         print(f"Temperature inside: {self.temperature_inside}")
         print(f"Temperature outside: {self.temperature_outside}")
 
+        return self.heat_power, self.water_heat_power, self.temperature_inside, self.power_supply_mode
+
     def _reset_day(self):
         self.water_heated = 0
 
 
-simulator = Simulator()
-time = datetime.now().replace(day=13)
-hour = time.hour
-simulator.simulate_next_hour(7.8, 82, datetime.now())
-simulator.simulate_next_hour(8.2, 84, datetime.now().replace(hour=hour+1))
-simulator.simulate_next_hour(8.6, 85, datetime.now().replace(hour=hour+2))
-simulator.simulate_next_hour(9, 86, datetime.now().replace(hour=hour+3))
-simulator.simulate_next_hour(7.7, 76, datetime.now().replace(hour=hour+4))
-simulator.simulate_next_hour(6.3, 65, datetime.now().replace(hour=hour+5))
-simulator.simulate_next_hour(20, 54, datetime.now().replace(hour=hour+6))
-simulator.simulate_next_hour(
-    20, 54, datetime.now().replace(hour=(hour+7) % 24))
-simulator.simulate_next_hour(
-    20, 54, datetime.now().replace(hour=(hour+8) % 24))
-simulator.simulate_next_hour(
-    20, 54, datetime.now().replace(hour=(hour+9) % 24))
-simulator.simulate_next_hour(
-    5, 54, datetime.now().replace(hour=(hour+10) % 24))
-simulator.simulate_next_hour(
-    5, 54, datetime.now().replace(hour=(hour+11) % 24))
-simulator.simulate_next_hour(
-    5, 54, datetime.now().replace(hour=(hour+12) % 24))
-simulator.simulate_next_hour(
-    5, 54, datetime.now().replace(hour=(hour+13) % 24))
-simulator.simulate_next_hour(
-    5, 54, datetime.now().replace(hour=(hour+14) % 24))
-simulator.simulate_next_hour(
-    5, 54, datetime.now().replace(hour=(hour+15) % 24))
-simulator.simulate_next_hour(
-    5, 54, datetime.now().replace(hour=(hour+16) % 24))
-simulator.simulate_next_hour(
-    5, 54, datetime.now().replace(hour=(hour+17) % 24))
-simulator.simulate_next_hour(
-    5, 54, datetime.now().replace(hour=(hour+18) % 24))
-simulator.simulate_next_hour(
-    5, 54, datetime.now().replace(hour=(hour+19) % 24))
-simulator.simulate_next_hour(
-    5, 54, datetime.now().replace(hour=(hour+20) % 24))
-simulator.simulate_next_hour(
-    5, 54, datetime.now().replace(hour=(hour+21) % 24))
-simulator.simulate_next_hour(
-    5, 54, datetime.now().replace(hour=(hour+22) % 24))
-simulator.simulate_next_hour(
-    5, 54, datetime.now().replace(hour=(hour+23) % 24))
+# simulator = Simulator()
+# time = datetime.now().replace(day=13, month=5)
+# hour = time.hour
+# simulator.simulate_next_hour(15, 82, datetime.now())
+# simulator.simulate_next_hour(16, 84, datetime.now().replace(hour=hour+1))
+# simulator.simulate_next_hour(18, 85, datetime.now().replace(hour=hour+2))
+# simulator.simulate_next_hour(19, 86, datetime.now().replace(hour=hour+3))
+# simulator.simulate_next_hour(17.7, 76, datetime.now().replace(hour=hour+4))
+# simulator.simulate_next_hour(16.3, 65, datetime.now().replace(hour=hour+5))
+# simulator.simulate_next_hour(10, 54, datetime.now().replace(hour=hour+6))
+# simulator.simulate_next_hour(
+#     10, 90, datetime.now().replace(hour=(hour+7) % 24))
+# simulator.simulate_next_hour(
+#     10, 90, datetime.now().replace(hour=(hour+8) % 24))
+# simulator.simulate_next_hour(
+#     20, 90, datetime.now().replace(hour=(hour+9) % 24))
+# simulator.simulate_next_hour(
+#     2, 90, datetime.now().replace(hour=(hour+10) % 24))
+# simulator.simulate_next_hour(
+#     2, 90, datetime.now().replace(hour=(hour+11) % 24))
+# simulator.simulate_next_hour(
+#     2, 90, datetime.now().replace(hour=(hour+12) % 24))
+# simulator.simulate_next_hour(
+#     2, 54, datetime.now().replace(hour=(hour+13) % 24))
+# simulator.simulate_next_hour(
+#     2, 54, datetime.now().replace(hour=(hour+14) % 24))
+# simulator.simulate_next_hour(
+#     2, 54, datetime.now().replace(hour=(hour+15) % 24))
+# simulator.simulate_next_hour(
+#     2, 54, datetime.now().replace(hour=(hour+16) % 24))
+# simulator.simulate_next_hour(
+#     16, 54, datetime.now().replace(hour=(hour+17) % 24))
+# simulator.simulate_next_hour(
+#     17, 54, datetime.now().replace(hour=(hour+18) % 24))
+# simulator.simulate_next_hour(
+#     15, 54, datetime.now().replace(hour=(hour+19) % 24))
+# simulator.simulate_next_hour(
+#     25, 54, datetime.now().replace(hour=(hour+20) % 24))
+# simulator.simulate_next_hour(
+#     25, 54, datetime.now().replace(hour=(hour+21) % 24))
+# simulator.simulate_next_hour(
+#     25, 54, datetime.now().replace(hour=(hour+22) % 24))
+# simulator.simulate_next_hour(
+#     25, 54, datetime.now().replace(hour=(hour+23) % 24))
