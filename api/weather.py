@@ -1,5 +1,4 @@
 import json
-from datetime import date
 from typing import Optional, List
 
 from fastapi import FastAPI
@@ -76,7 +75,3 @@ class Forecast():
 
         return forecasts
 
-
-if __name__ == '__main__':
-    print(json.dumps(Forecast().get_current_weather(), default=lambda o: o.__dict__,
-                     sort_keys=True, indent=4))
