@@ -11,5 +11,6 @@ max_accumulator_capacity = 7
 water_tank_capacity = 150
 water_tank_dispose_time = 1/6
 water_heat_time = 1
+water_required = 7.2
 
 heat_power_per_room = [1, 1, 1.5, 1.5, 2, 2, 3]
